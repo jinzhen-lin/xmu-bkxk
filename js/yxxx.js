@@ -174,7 +174,6 @@ function beginPage() {
       return;
     }
     pagination = new_page_size;
-    $("#pagid").html(top.pagination);
   }
 
   var to_page = document.getElementById("beginPage").value.replace(" ", "");
@@ -192,6 +191,7 @@ function beginPage() {
     pageNo = to_page;
   }
   drawJxbView();
+  $("#pagid").html(pagination);
 }
 
 /**
