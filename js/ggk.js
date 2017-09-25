@@ -223,7 +223,7 @@ function setShowType() {
   $("#show_yx").attr("checked", show_yx);
 
   $("#dialog-setting").dialog({
-    title: "显示选项设置：院系选修课",
+    title: "显示选项设置：公共课",
     buttons: {
       "确定": function() {
         var before_change = [show_zc, show_rs, show_ym, show_ct, show_yx];
