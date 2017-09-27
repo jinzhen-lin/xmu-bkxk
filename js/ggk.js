@@ -28,33 +28,7 @@ function generateFilterJxbs() {
   jxbFilters = new Array();
   results = new Array();
 
-  // 获取全部课程已选人数
-  var jxbList = [];
-  for (jxbid in ggkJxb) {
-    jxbList.push({
-      "jxbid": jxbid
-    })
-  }
-
-  if (jxbList.length > Object.keys(jxb_xkrs).length) {
-    $.ajax({
-      success: function(responseData, statusText) {
-        if (responseData.success) {
-          for (let jxb of responseData.data) {
-            jxb_xkrs[jxb["jxbid"]] = jxb;
-          }
-        }
-      },
-      url: 'calJxbRs.html?method=getRsToZxxk',
-      type: 'post',
-      async: false,
-      data: {
-        "jxbs": $.toJSON(jxbList)
-      },
-      dataType: 'json'
-    });
-  }
-
+  getAllJxbKxrs(force = false);
 
   //班级选择情况过滤（与选课结果比较是否已选、冲突判断）
   for (jxbid in ggkJxb) {
@@ -234,6 +208,9 @@ function setShowType() {
   $("#dialog-setting").dialog({
     title: "显示选项设置：" + $("#zxxk_tab .tabin", top.document).text(),
     buttons: {
+      "更新可选人数": function() {
+        getAllJxbKxrs(force = true)
+      },
       "确定": function() {
         var before_change = [show_zc, show_rs, show_ym, show_ct, show_yx, pagination];
 
@@ -271,6 +248,37 @@ function setShowType() {
       }
     }
   });
+}
+
+
+
+function getAllJxbKxrs(force) {
+  // 获取全部课程已选人数
+  var jxbList = [];
+  for (jxbid in ggkJxb) {
+    jxbList.push({
+      "jxbid": jxbid
+    })
+  }
+
+  if (force || jxbList.length > Object.keys(jxb_xkrs).length) {
+    $.ajax({
+      success: function(responseData, statusText) {
+        if (responseData.success) {
+          for (let jxb of responseData.data) {
+            jxb_xkrs[jxb["jxbid"]] = jxb;
+          }
+        }
+      },
+      url: 'calJxbRs.html?method=getRsToZxxk',
+      type: 'post',
+      async: false,
+      data: {
+        "jxbs": $.toJSON(jxbList)
+      },
+      dataType: 'json'
+    });
+  }
 }
 
 

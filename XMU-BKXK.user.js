@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XMU-BKXK
 // @namespace    undefined
-// @version      0.1.1
+// @version      0.1.2
 // @description  厦门大学本科选课系统改造脚本
 // @author       linjinzhen
 // @match        http://bkxk.xmu.edu.cn/*
