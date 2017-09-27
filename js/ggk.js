@@ -9,11 +9,11 @@ $(document).ready(function() {
 // 用于存储已选课程信息列表
 var yxList = {}
 
-var show_rs = false; // 是否显示已满课程已选人数
-var show_ym = true; // 是否显示已满课程
-var show_ct = true; // 是否显示冲突课程
-var show_yx = false; // 是否显示已选课程
-var show_zc = true; // 是否显示正常课程
+var show_rs = $("#show_rs_global", top.document).attr("checked"); // 是否显示已满课程已选人数
+var show_ym = $("#show_ym_global", top.document).attr("checked"); // 是否显示已满课程
+var show_ct = $("#show_ct_global", top.document).attr("checked"); // 是否显示冲突课程
+var show_yx = $("#show_yx_global", top.document).attr("checked"); // 是否显示已选课程
+var show_zc = $("#show_zc_global", top.document).attr("checked"); // 是否显示正常课程
 
 /**
  * 根据业务规则过滤页面加载的教学班列表
@@ -214,7 +214,9 @@ function setShowType() {
     '<div><input type="checkbox" id="show_ym"><label for="show_ym">是否显示已满课程</label></div>' +
     '<div><input type="checkbox" id="show_ct"><label for="show_ct">是否显示冲突课程</label></div>' +
     '<div><input type="checkbox" id="show_yx"><label for="show_yx">是否显示已选课程</label></div>' +
-    '<div><input type="checkbox" id="show_zc"><label for="show_zc">是否显示正常课程</label></div>';
+    '<div><input type="checkbox" id="show_zc"><label for="show_zc">是否显示正常课程</label></div>' +
+    '<div><p></p></div>' +
+    '<div><input type="checkbox" id="is_global"><label for="is_global">是否全局设置</label></div>'
   $("#dialog-setting-nr").html(setting_dialog)
   $("#show_rs").attr("checked", show_rs);
   $("#show_ym").attr("checked", show_ym);
@@ -236,8 +238,18 @@ function setShowType() {
         if (before_change.toString() != after_change.toLocaleString()) {
           drawJxbView();
         }
+        if ($("#is_global").attr("checked")) {
+          $("#show_zc_global", top.document).attr("checked", show_zc);
+          $("#show_rs_global", top.document).attr("checked", show_rs);
+          $("#show_ym_global", top.document).attr("checked", show_ym);
+          $("#show_ct_global", top.document).attr("checked", show_ct);
+          $("#show_yx_global", top.document).attr("checked", show_yx);
+        }
         $(this).dialog("close");
       }
     }
   });
 }
+
+
+drawJxbView();
