@@ -7,7 +7,10 @@ $(document).ready(function() {
 });
 
 // 用于存储已选课程信息列表
-var yxList = {}
+var yxList = {};
+
+// 存储教学班可选人数
+var jxb_xkrs = {};
 
 var show_rs = $("#show_rs_global", top.document).attr("checked"); // 是否显示已满课程已选人数
 var show_ym = $("#show_ym_global", top.document).attr("checked"); // 是否显示已满课程
@@ -27,29 +30,30 @@ function generateFilterJxbs() {
 
   // 获取全部课程已选人数
   var jxbList = [];
-  var jxb_xkrs = {};
   for (jxbid in yxxxJxb) {
     jxbList.push({
       "jxbid": jxbid
     })
   }
 
-  $.ajax({
-    success: function(responseData, statusText) {
-      if (responseData.success) {
-        for (let jxb of responseData.data) {
-          jxb_xkrs[jxb["jxbid"]] = jxb;
+  if (jxbList.length > Object.keys(jxb_xkrs).length) {
+    $.ajax({
+      success: function(responseData, statusText) {
+        if (responseData.success) {
+          for (let jxb of responseData.data) {
+            jxb_xkrs[jxb["jxbid"]] = jxb;
+          }
         }
-      }
-    },
-    url: 'calJxbRs.html?method=getRsToZxxk',
-    type: 'post',
-    async: false,
-    data: {
-      "jxbs": $.toJSON(jxbList)
-    },
-    dataType: 'json'
-  });
+      },
+      url: 'calJxbRs.html?method=getRsToZxxk',
+      type: 'post',
+      async: false,
+      data: {
+        "jxbs": $.toJSON(jxbList)
+      },
+      dataType: 'json'
+    });
+  }
 
 
   //班级选择情况过滤（与选课结果比较是否已选、冲突判断）

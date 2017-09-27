@@ -7,7 +7,10 @@ $(document).ready(function() {
 });
 
 // 用于存储已选课程信息列表
-var yxList = {}
+var yxList = {};
+
+// 存储教学班可选人数
+var jxb_xkrs = {};
 
 var show_rs = $("#show_rs_global", top.document).attr("checked"); // 是否显示已满课程已选人数
 var show_ym = $("#show_ym_global", top.document).attr("checked"); // 是否显示已满课程
@@ -27,29 +30,30 @@ function generateFilterJxbs() {
 
   // 获取全部课程已选人数
   var jxbList = [];
-  var jxb_xkrs = {};
   for (jxbid in ggkJxb) {
     jxbList.push({
       "jxbid": jxbid
     })
   }
 
-  $.ajax({
-    success: function(responseData, statusText) {
-      if (responseData.success) {
-        for (let jxb of responseData.data) {
-          jxb_xkrs[jxb["jxbid"]] = jxb;
+  if (jxbList.length > Object.keys(jxb_xkrs).length) {
+    $.ajax({
+      success: function(responseData, statusText) {
+        if (responseData.success) {
+          for (let jxb of responseData.data) {
+            jxb_xkrs[jxb["jxbid"]] = jxb;
+          }
         }
-      }
-    },
-    url: 'calJxbRs.html?method=getRsToZxxk',
-    type: 'post',
-    async: false,
-    data: {
-      "jxbs": $.toJSON(jxbList)
-    },
-    dataType: 'json'
-  });
+      },
+      url: 'calJxbRs.html?method=getRsToZxxk',
+      type: 'post',
+      async: false,
+      data: {
+        "jxbs": $.toJSON(jxbList)
+      },
+      dataType: 'json'
+    });
+  }
 
 
   //班级选择情况过滤（与选课结果比较是否已选、冲突判断）
@@ -208,66 +212,66 @@ function beginPage() {
 /**
  * 显示选项设置对话框
  */
- function setShowType() {
-   var setting_dialog =
-     '<div><input type="checkbox" id="show_rs"><label for="show_rs">是否显示已满课程已选人数</label></div>' +
-     '<div><input type="checkbox" id="show_ym"><label for="show_ym">是否显示已满课程</label></div>' +
-     '<div><input type="checkbox" id="show_ct"><label for="show_ct">是否显示冲突课程</label></div>' +
-     '<div><input type="checkbox" id="show_yx"><label for="show_yx">是否显示已选课程</label></div>' +
-     '<div><input type="checkbox" id="show_zc"><label for="show_zc">是否显示正常课程</label></div>' +
-     '<div><p></p></div>' +
-     '<div><label>每页课程数：</label><input type="text" id="page_size0" size=2></div>' +
-     '<div><p></p></div>' +
-     '<div><input type="checkbox" id="is_global"><label for="is_global">是否全局设置</label></div>';
-   $("#dialog-setting-nr").html(setting_dialog)
-   $("#show_rs").attr("checked", show_rs);
-   $("#show_ym").attr("checked", show_ym);
-   $("#show_ct").attr("checked", show_ct);
-   $("#show_zc").attr("checked", show_zc);
-   $("#show_yx").attr("checked", show_yx);
-   $("#page_size0").val(pagination);
+function setShowType() {
+  var setting_dialog =
+    '<div><input type="checkbox" id="show_rs"><label for="show_rs">是否显示已满课程已选人数</label></div>' +
+    '<div><input type="checkbox" id="show_ym"><label for="show_ym">是否显示已满课程</label></div>' +
+    '<div><input type="checkbox" id="show_ct"><label for="show_ct">是否显示冲突课程</label></div>' +
+    '<div><input type="checkbox" id="show_yx"><label for="show_yx">是否显示已选课程</label></div>' +
+    '<div><input type="checkbox" id="show_zc"><label for="show_zc">是否显示正常课程</label></div>' +
+    '<div><p></p></div>' +
+    '<div><label>每页课程数：</label><input type="text" id="page_size0" size=2></div>' +
+    '<div><p></p></div>' +
+    '<div><input type="checkbox" id="is_global"><label for="is_global">是否全局设置</label></div>';
+  $("#dialog-setting-nr").html(setting_dialog)
+  $("#show_rs").attr("checked", show_rs);
+  $("#show_ym").attr("checked", show_ym);
+  $("#show_ct").attr("checked", show_ct);
+  $("#show_zc").attr("checked", show_zc);
+  $("#show_yx").attr("checked", show_yx);
+  $("#page_size0").val(pagination);
 
-   $("#dialog-setting").dialog({
-     title: "显示选项设置：" + $("#zxxk_tab .tabin", top.document).text(),
-     buttons: {
-       "确定": function() {
-         var before_change = [show_zc, show_rs, show_ym, show_ct, show_yx, pagination];
+  $("#dialog-setting").dialog({
+    title: "显示选项设置：" + $("#zxxk_tab .tabin", top.document).text(),
+    buttons: {
+      "确定": function() {
+        var before_change = [show_zc, show_rs, show_ym, show_ct, show_yx, pagination];
 
-         show_zc = $("#show_zc").attr("checked");
-         show_rs = $("#show_rs").attr("checked");
-         show_ym = $("#show_ym").attr("checked");
-         show_ct = $("#show_ct").attr("checked");
-         show_yx = $("#show_yx").attr("checked");
+        show_zc = $("#show_zc").attr("checked");
+        show_rs = $("#show_rs").attr("checked");
+        show_ym = $("#show_ym").attr("checked");
+        show_ct = $("#show_ct").attr("checked");
+        show_yx = $("#show_yx").attr("checked");
 
-         var new_page_size = $("#page_size0").val().replace(" ", "");
-         if (new_page_size.length) {
-           if (isNaN(new_page_size) || new_page_size <= 0) {
-             alert("提示：请输入有效每页记录数!");
-             return;
-           }
-           pagination = new_page_size;
-         }
+        var new_page_size = $("#page_size0").val().replace(" ", "");
+        if (new_page_size.length) {
+          if (isNaN(new_page_size) || new_page_size <= 0) {
+            alert("提示：请输入有效每页记录数!");
+            return;
+          }
+          pagination = new_page_size;
+        }
 
-         var after_change = [show_zc, show_rs, show_ym, show_ct, show_yx, pagination];
+        var after_change = [show_zc, show_rs, show_ym, show_ct, show_yx, pagination];
 
-         if (before_change.toString() != after_change.toLocaleString()) {
-           drawJxbView();
-         }
+        if (before_change.toString() != after_change.toLocaleString()) {
+          drawJxbView();
+        }
 
-         if ($("#is_global").attr("checked")) {
-           $("#show_zc_global", top.document).attr("checked", show_zc);
-           $("#show_rs_global", top.document).attr("checked", show_rs);
-           $("#show_ym_global", top.document).attr("checked", show_ym);
-           $("#show_ct_global", top.document).attr("checked", show_ct);
-           $("#show_yx_global", top.document).attr("checked", show_yx);
-           top.pagination = Number(new_page_size);
-         }
+        if ($("#is_global").attr("checked")) {
+          $("#show_zc_global", top.document).attr("checked", show_zc);
+          $("#show_rs_global", top.document).attr("checked", show_rs);
+          $("#show_ym_global", top.document).attr("checked", show_ym);
+          $("#show_ct_global", top.document).attr("checked", show_ct);
+          $("#show_yx_global", top.document).attr("checked", show_yx);
+          top.pagination = Number(new_page_size);
+        }
 
-         $(this).dialog("close");
-       }
-     }
-   });
- }
+        $(this).dialog("close");
+      }
+    }
+  });
+}
 
 
 drawJxbView();
