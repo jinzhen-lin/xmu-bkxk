@@ -3,6 +3,11 @@
 
 弄这个脚本一方面是因为觉得选课功能提供的功能还有所欠缺，另一方面是想再练习下最近刚接触的JavaScript。
 
+## 安装说明
+需要在浏览器上安装插件，推荐使用[Tampermonkey](http://tampermonkey.net/)，支持Chrome, Microsoft Edge, Safari, Opera Next, Firefox 以及各种国产的基于chrome内核的浏览器。
+
+安装插件后到[GreasyFork](https://greasyfork.org/zh-CN/scripts/33617-xmu-bkxk)安装脚本即可。
+
 ## 使用说明
 这个脚本在（主修选课的）院系必修课、全校性必修课、院系选修课和公共课几个页面增加了“显示设置”按钮（全校性选修课页面结构不大一样，暂未修改完成），按钮位于课程列表右上角的查询处。设置页面的选项包括：
 
@@ -22,6 +27,7 @@
 
 
 ## 其他说明
+项目地址：[Github](https://github.com/jinzhen-lin)、[开源中国](https://gitee.com/linjinzhen/xmu-bkxk)
 这个脚本是在第三轮选课时写的，不保证在其他轮次时不会出现一些科学难以解释的错误。同时，院系必修课和全校性必修课两个页面也没有经过详细的测试（没有必修课了= =）。有啥错误或者有啥需要的新功能可以报告（不包括抢课功能），但相应的需要提供测试账号。
 
 ## TODO
