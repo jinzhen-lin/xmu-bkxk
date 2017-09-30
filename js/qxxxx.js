@@ -1,100 +1,227 @@
-var view_table = "view_table";
-// 快速选课教学班列表
-var qxxxxJxb = new Array();
+//记录当前页已满的教学班
+var fullJxbs = {};
+var jxb_xkrs = {};
 
-// 记录业务规则过滤后的教学班列表，查询等页面操作都是针对此列表
-var filterJxbs = new Array();
-// 过滤后教学班相应的过滤信息
-var jxbFilters = new Array();
-//定义装载当前显示的教学班信息列表，用于从后台抓起人数
-var xsJxbidList = new Array();
-//教学班附加信息，用于下面的业务处理
-var jxbfjxxList = new Array();
+// 用于存储已选课程信息列表
+var yxList = {};
 
-//用于存储冲突信息列表
-var ctxxList = {};
+var advancedQuerying = false; //是否点击了高级查询
 
-// 需更新的教学班相关附加信息列表
-var commJxbfjxx = null;
+var show_rs = $("#show_rs_global", top.document).attr("checked"); // 是否显示已满课程已选人数
+var show_ym = $("#show_ym_global", top.document).attr("checked"); // 是否显示已满课程
+var show_ct = $("#show_ct_global", top.document).attr("checked"); // 是否显示冲突课程
+var show_yx = $("#show_yx_global", top.document).attr("checked"); // 是否显示已选课程
+var show_zc = $("#show_zc_global", top.document).attr("checked"); // 是否显示正常课程
+
+// 查询结果
+var results = new Array();
 
 $(document).ready(function() {
-  // 定义人数更新判断方法
-  var options = {
-    success: function(responseData, statusText) {
-      if (responseData.success) {
-        var datas = responseData.data;
-        // 根据教学班已选情况加载教学班显示
-        setJxbViewAttr(datas, view_table, commJxbfjxx);
-      }
-    },
-    url: 'calJxbRs.html?method=getRsToZxxk',
-    type: 'post',
-    dataType: 'json',
-    forceSync: true
-  };
+  $("#beginPage").parent().append('，每页<input size="2" id="pagesize" type="text" onkeydown="forwardPage(event)">条记录</div>');
+  $("#dialog-qrxk").after('<div id="dialog-setting" style="display: none"><p id="dialog-setting-nr"></p></div>');
+  $("#view_table").before('<div style="float:right;height:22px;line-height:23px;width:50px">' +
+    '<a id="show_setting" href="#" style="float:right;color:black;font-weight:bold;">显示设置</a></div>');
+  $("#show_setting").click(setShowType);
+  //定义查询操作
+  defineQueryOper();
 
-  $('#hiddenForm').submit(function() {
-    $('#hiddenForm').ajaxSubmit(options);
-    return false;
-  });
-
-  $("#dialog").dialog({
-    autoOpen: false,
-    show: "blind",
-    hide: "explode"
-  });
-
+  //展现可选教学班
   drawJxbView();
-  $("#pagid").html(top.pagination);
 });
+
+
+/*
+ * 定义查询操作
+ */
+function defineQueryOper() {
+
+  $("#moreOrLess").click(function() {
+    $("#generalQuery").hide();
+    $("#advanceQuery").show();
+  });
+
+  $("#backGQuery").click(function() {
+    $("#advanceQuery").hide();
+    $("#generalQuery").show();
+  });
+
+  $("#advQueryFun").click(function() {
+    advancedQuerying = true;
+    pageNo = 1;
+
+    var ksjc = $("#ksjc").val();
+    var jsjc = $("#jsjc").val();
+    if ((ksjc != "" && jsjc == "") || (ksjc == "" && jsjc != "")) {
+      alert("开始节次、结束节次必须同时选择，请正确选择节次信息进行查询！");
+      return;
+    }
+    if (parseInt(ksjc) > parseInt(jsjc)) {
+      alert("开始节次不能大于结束节次，请正确选择节次信息进行查询！");
+      return;
+    }
+
+    drawJxbView();
+  });
+
+  $("#imgButton").click(function() {
+    advancedQuerying = false;
+    pageNo = 1;
+    drawJxbView();
+  });
+
+  // 初始化高级查询中院系下拉框
+  /* var list = top.bubbleSortYxObjList();
+    for(var i in list){
+   		$("#yxdm").append("<option value='" + list[i].key + "'>" + list[i].value);
+  	}*/
+
+  //开课院列表 
+  var kkyList = top.loadKkyList();
+  for (var i = 0; i < kkyList.length; i++) {
+    var kkyObj = kkyList[i];
+    $("#kkyList").append("<option value='" + kkyObj.dwdm + "'>" + kkyObj.yxmc);
+  }
+
+  //开课系列表
+  var kkxList = top.loadKkxList();
+  for (var j = 0; j < kkxList.length; j++) {
+    var kkxObj = kkxList[j];
+    $("#kkxList").append("<option value='" + kkxObj.dwdm + "'>" + kkxObj.yxmc);
+  }
+
+  // 初始化星期
+  $("#xq").append("<option value='1'>星期一");
+  $("#xq").append("<option value='2'>星期二");
+  $("#xq").append("<option value='3'>星期三");
+  $("#xq").append("<option value='4'>星期四");
+  $("#xq").append("<option value='5'>星期五");
+  $("#xq").append("<option value='6'>星期六");
+  $("#xq").append("<option value='7'>星期日");
+
+  // 初始化节次代码
+  for (var jcdm in top.jcList) {
+    $("#ksjc").append("<option value='" + jcdm + "'>" + top.jcList[jcdm] + "</option>");
+    $("#jsjc").append("<option value='" + jcdm + "'>" + top.jcList[jcdm] + "</option>");
+  }
+}
+
+
+/*
+ * ===================================================
+ * 功能描述 : 开课院联动开课系加载
+ * ===================================================
+ */
+function loadKkxList() {
+  var kkyVal = $("#kkyList").val();
+
+  //开课系列表
+  var kkxList;
+  if (kkyVal != null && kkyVal != "") {
+    kkxList = top.loadKkyOnKkxList(kkyVal);
+  } else {
+    kkxList = top.loadKkxList();
+  }
+
+  //重修初始化开课系列表
+  $("#kkxList").empty();
+
+  $("#kkxList").append("<option value=''>-请选择-");
+  for (var j = 0; j < kkxList.length; j++) {
+    var kkxObj = kkxList[j];
+    $("#kkxList").append("<option value='" + kkxObj.dwdm + "'>" + kkxObj.yxmc);
+  }
+}
 
 /**
  * 根据业务规则过滤页面加载的教学班列表
  */
-function drawJxbView() {
-  delete filterJxbs;
+function generateFilterJxbs() {
   delete jxbFilters;
-  delete xsJxbidList;
-  delete jxbfjxxList;
+  delete results;
 
-  filterJxbs = new Array();
   jxbFilters = new Array();
-  xsJxbidList = new Array();
-  jxbfjxxList = new Array();
+  results = new Array();
+
+  getAllJxbKxrs(force = false);
 
   // 班级选择情况过滤（与选课结果比较是否已选、冲突判断）
   for (jxbid in qxxxxJxb) {
     var jxbObj = qxxxxJxb[jxbid];
     var jgObj = loadJxbXkFilter(jxbObj);
-    filterJxbs[jxbid] = jxbObj;
-    jxbFilters[jxbid] = jgObj;
+    yxList[jxbid] = jgObj.isYx;
+    ctxxList[jxbid] = jgObj.ctHtmlTxt;
 
-    var kclbmc = "&nbsp;"
-    if (top.kclbMap[jxbObj.kclbdm] != null) {
-      kclbmc = top.kclbMap[jxbObj.kclbdm];
+    var fit = true;
+    if (!show_zc) {
+      fit = false;
     }
 
-    var kcxzmc = "&nbsp;";
-    if (top.kcxzMap[jxbObj.kcxzdm] != null) {
-      kcxzmc = top.kcxzMap[jxbObj.kcxzdm];
+    if (jgObj.ctHtmlTxt.length) {
+      fit = show_ct;
     }
 
-    var xqmc = "&nbsp;";
-    if (top.xqiuMap[jxbObj.xqdm] != null) {
-      xqmc = top.xqiuMap[jxbObj.xqdm];
+    if (Number(jxb_xkrs[jxbid]["kxrs"]) <= Number(jxb_xkrs[jxbid]["yxrs"])) {
+      fit = show_ym;
     }
 
-    var kkdwmc = "&nbsp;";
-    if (top.yxObjList[jxbObj.kkdw] != null) {
-      kkdwmc = top.yxObjList[jxbObj.kkdw];
+    if (jgObj.isYx) {
+      fit = show_yx;
     }
 
-    $("#" + view_table + "_kclbdm_" + jxbid).html(kclbmc);
-    $("#" + view_table + "_kcxzdm_" + jxbid).html(kcxzmc);
-    $("#" + view_table + "_kkdw_" + jxbid).html(kkdwmc);
 
-    //设置校区
-    //  $("#" + view_table + "_xqdm_" + jxbid).html(xqmc);
+    //正在进行高级查询
+    if (fit && advancedQuerying) {
+      fit = advanceVal(jxbObj);
+    }
+
+    if (fit) {
+      results[jxbid] = jxbObj;
+      jxbFilters[jxbid] = jgObj;
+    }
+  }
+}
+
+/**
+ * 绘制表格
+ */
+function drawJxbView() {
+  generateFilterJxbs();
+
+  //隐藏表格，重新进行构建
+  $("#" + view_table).hide();
+
+  //定义装载当前显示的教学班信息列表，用于从后台抓起人数
+  var xsJxbidList = new Array();
+
+  //移除表格所有的行重新加载
+  $("#" + view_table + " tr:gt(0)").remove();
+
+  //当前页面需显示的教学班列表
+  var currentPageJxbs = new Array();
+  var resultLen = getLengthOfObj(results);
+  var totalPageCount = Math.ceil(resultLen / pagination);
+  if (totalPageCount == 0) {
+    totalPageCount = 1;
+  }
+  if (pageNo > totalPageCount) {
+    pageNo = totalPageCount;
+  }
+  var startIndex = (pageNo - 1) * pagination + 1;
+  var endIndex = resultLen > pageNo * pagination ? pageNo * pagination : resultLen;
+  var i = 1;
+  for (jxbid in results) {
+    if (i >= startIndex && i <= endIndex) {
+      currentPageJxbs[jxbid] = results[jxbid];
+    }
+    i++;
+  }
+
+  //教学班附加信息，用于下面的业务处理
+  var jxbfjxxList = new Array();
+
+  for (var jxbid in currentPageJxbs) {
+
+    var jxbObj = currentPageJxbs[jxbid];
 
     //拼接上课时间、地点信息
     var pkxxList = jxbObj.pkxxlist;
@@ -124,16 +251,65 @@ function drawJxbView() {
     if (skddTxt == "")
       skddTxt = "&nbsp;";
 
-    //填充上课时间
-    $("#" + view_table + "_sksj_" + jxbid).html(sksjTxt);
-    //填充上课地点
-    $("#" + view_table + "_skdd_" + jxbid).html(skddTxt);
+    var skjsText = jxbObj.zjls == "" ? "&nbsp;" : jxbObj.zjls;
 
-    // 存在冲突的班级
+    /** *********** 可选班级信息拼接 ************ */
+    var trStr = "";
+    var bjmcStr = "&nbsp;";
+    if (jxbObj.bjmc != "") {
+      bjmcStr = jxbObj.bjmc;
+    }
+
+    var kclbmc = "&nbsp;"
+    if (top.kclbMap[jxbObj.kclbdm] != null) {
+      kclbmc = top.kclbMap[jxbObj.kclbdm];
+    }
+
+    var kcxzmc = "&nbsp;";
+    if (top.kcxzMap[jxbObj.kcxzdm] != null) {
+      kcxzmc = top.kcxzMap[jxbObj.kcxzdm];
+    }
+
+    //开课单位名称
+    var kkdwmc = "&nbsp;"
+    if (top.yxObjList[jxbObj.kkdw] != null) {
+      kkdwmc = top.yxObjList[jxbObj.kkdw];
+    }
+
+    //总学时
+    var zxs = (jxbObj.zxs == null || jxbObj.zxs == "") ? "&nbsp;" : jxbObj.zxs;
+
+    trStr = '<tr id="tr_' + view_table + '_' + jxbid + '">';
+    trStr += ('<td>' + kclbmc + '</td>');
+    trStr += ('<td>' + kcxzmc + '</td>');
+    //  trStr += ('<td><a class="kcjj" href="">' + jxbObj.kcdm + '</a></td>');
+    //trStr += ('<td>' + jxbObj.kcmc + '</td>');
+    trStr += ('<td><a id="' + jxbid + '"class="jxjd" href="">' + jxbObj.kcmc + '</a></td>');
+    trStr += ('<td>' + bjmcStr + '</td>');
+    trStr += ('<td>' + kkdwmc + '</td>');
+    trStr += ('<td>' + jxbObj.xf + '</td>');
+    //   trStr += ('<td>&nbsp;' + jxbObj.xqmc + '&nbsp;</td>');
+    trStr += ('<td>' + sksjTxt + '</td>');
+    trStr += ('<td>' + skddTxt + '</td>');
+    trStr += ('<td>' + skjsText + '</td>');
+    //   trStr += ('<td>' + zxs + '</td>');
+    trStr += ('<td><span id="' + view_table + '_xkrs_' + jxbid + '">&nbsp;</span></td>');
+    trStr += ('<td><span id="' + view_table + '_ctxx_' + jxbid + '">&nbsp;</span></td>');
+    trStr += ('<td><span id="' + view_table + '_xkbut_' + jxbid + '">&nbsp;</span></td>');
+    trStr += '</tr>';
+    /** *********** end ************ */
+
+    //加入到表格展示
+    $("#view_table").append(trStr);
+
+    var jgObj = jxbFilters[jxbid];
+
+    //存在冲突的班级
     if (jgObj.ctHtmlTxt != "") {
       ctxxList[jxbid] = jgObj.ctHtmlTxt;
-      // 班级冲突信息查看绑定
-      jxbCtxxBind(view_table, jxbid);
+
+      //班级冲突信息查看绑定
+      jxbCtxxBind(view_table, jxbid, jgObj.ctHtmlTxt);
     }
 
     // 装载显示教学班列表
@@ -147,6 +323,9 @@ function drawJxbView() {
     fjxxObj.ctHtmlTxt = jgObj.ctHtmlTxt;
     jxbfjxxList[jxbid] = fjxxObj;
   }
+
+  //分页信息显示
+  showPageInfo();
 
   // 获取教学班已选人数
   refreshJxbRs(xsJxbidList, jxbfjxxList);
@@ -287,7 +466,7 @@ function drawJxbView() {
 
     $("#dialog-jxjd-nr").html(innerHTML);
     $("#dialog-jxjd").dialog({
-      title: "课程及教师介绍信息" + kcmc,
+      title: "课程及教师介绍信息",
       modal: true,
       width: 600,
       height: 400,
@@ -302,18 +481,15 @@ function drawJxbView() {
   });
 }
 
-// 记录当前页已满的教学班
-var fullJxbs = {};
 /*
  * ================================================================================
  * 功能描述 : 设置每个显示教学班相关的属性（人数，可选情况） 作用窗体 : 输入参数 : 无 输出参数 :
  * ================================================================================
  */
 function setJxbViewAttr(datas, view_table, jxbfjxxList) {
-  delete fullJxbs;
-  fullJxbs = {};
 
   for (var i = 0; i < datas.length; i++) {
+
     //教学班容纳人数
     var jxbObj = qxxxxJxb[datas[i].jxbid];
 
@@ -333,23 +509,24 @@ function setJxbViewAttr(datas, view_table, jxbfjxxList) {
 
     //正选且人数已满,则显示“已满”标识否则显示人数
     if (parseInt(jxbYxrs) >= parseInt(jxbKxrs) &&
-      top.zxXklcObj.xkcl != "1") {
+      top.zxXklcObj.xkcl != "1" && !show_rs) {
       //人数显示"已满"
       $("#" + view_table + "_xkrs_" + datas[i].jxbid).html(
         "<font style='color:red'>已满</font>");
     } else {
-      //人数显示显示2013-06-03hnn
+      //人数显示显示
       $("#" + view_table + "_xkrs_" + datas[i].jxbid).html(jxbKxrs + "&nbsp;/&nbsp;" +
         "<font style='color:red'>" + jxbYxrs);
     }
 
-    //选课按钮显示2013-07-02hnn
-    if (parseInt(jxbKxrs) > 0) {
+    //选课按钮显示2013-05-23hnn
+    if (parseInt(jxbKxrs) > 0 && !yxList[datas[i].jxbid]) {
       var oper = $("#" + view_table + "_xkbut_" + datas[i].jxbid);
       oper.html('<a href="javascript:prepareSelectCourse(\'' +
         datas[i].jxbid +
         '\')" style="font-size:12px;font-weight:bold;color:blue">选课</a>');
     }
+
   }
 
   //设置表格单元格的样式
@@ -384,12 +561,7 @@ function loadJxbXkFilter(jxbObj) {
           break;
         }
       }
-      //说明不是学生个人级别的英语课则不可选
-      if (eval(jgObj.isYx)) {
-        return jgObj;
-      } else { //否则可选
-        break;
-      }
+      break;
     }
   }
 
@@ -413,8 +585,7 @@ function loadJxbXkFilter(jxbObj) {
     }
   }
 
-  //判断是否是历史已选课程，如果是历史已选课程则进行显示
-  /*   if(jxbObj.sftykczx!="1"){		//体育课可选重复修读，所以不过滤历史课程
+  /*  if(jxbObj.sftykczx!="1"){		//体育课可选重复修读，所以不过滤历史课程
     	var lsyxList = top.lsyxList;
 	    for ( var kcdm in lsyxList) {
 	        if(jxbObj.kcdm == kcdm) {
@@ -424,8 +595,10 @@ function loadJxbXkFilter(jxbObj) {
 	    }
     } */
 
-  //与选课结果中所有的教学班比较
+  //判断是否是历史已选课程，如果是历史已选课程则进行显示
   var kxPkxxList = jxbObj.pkxxlist;
+
+  //与选课结果中所有的教学班比较
   for (var jxbid in yxJxbList) {
     /** 判断已选教学班排课信息冲突校验 */
     var yxPkxxList = yxJxbList[jxbid].pkxxlist;
@@ -445,7 +618,6 @@ function loadJxbXkFilter(jxbObj) {
             //判断节次
             if ((parseInt(kxPkObj.jsjc) >= parseInt(yxPkObj.ksjc) && parseInt(kxPkObj.ksjc) <= parseInt(yxPkObj.jsjc))) {
 
-              //拼接上课时间、地点信息
               var ctts = "<b>当前班级上课时间与已选课程上课时间冲突</b><br>"
               var ctkc = "<br>冲突课程：" + yxJxbList[yxPkObj.jxbid].kcmc;
               if (yxJxbList[yxPkObj.jxbid].bjmc != "") {
@@ -464,6 +636,7 @@ function loadJxbXkFilter(jxbObj) {
       }
     }
   }
+
   return jgObj;
 }
 
@@ -509,91 +682,174 @@ function ctxxView(jxbid) {
 function refreshJxbRs(xsJxbidList, jxbfjxxList) {
   commJxbfjxx = jxbfjxxList;
   document.getElementById("jxbs").value = $.toJSON(xsJxbidList);
-  // 提交人数更新请求，加载可选教学班显示
+  //提交人数更新请求，加载可选教学班显示
   $('#hiddenForm').submit();
 }
 
 
-var pagination = top.pagination; // 分页时，每页的记录数
-var pageNo = 1; // 起始记录
-
-
-/**
- * 高级查询
- * 
- * @param pageNo
- */
-function advancedQuery() {
+//查询条件判断（高级查询）
+function advanceVal(jxbObj) {
+  // var yxdm = $("#yxdm").val();
+  var xq = $("#xq_select").val();
   var ksjc = $("#jcstart_select").val();
   var jsjc = $("#jcend_select").val();
-  if ((ksjc != "" && jsjc == "") || (ksjc == "" && jsjc != "")) {
-    alert("开始节次、结束节次必须同时选择，请正确选择节次信息进行查询！");
-    return;
-  }
-  if (parseInt(ksjc) > parseInt(jsjc)) {
-    alert("开始节次不能大于结束节次，请正确选择节次信息进行查询！");
-    return;
+  var xf = $("#xf_text").val();
+  var kcmc = $("#kcmc_text").val();
+  var skjs = $("#js_text").val();
+
+  //开课院
+  var kky = $("#kkyList").val();
+  //开课系
+  var kkx = $("#kkxList").val();
+
+  var fit = true;
+
+  //开课院过滤
+  if (kky != null && kky != "" && (kkx == null || kkx == "")) {
+    var kkxList = top.loadKkyOnKkxList(kky);
+    var j = 0;
+    for (var i = 0; i < kkxList.length; i++) {
+      var kkxObj = kkxList[i];
+      if (jxbObj.kkdw == kkxObj.dwdm) {
+        j = 1;
+        break;
+      }
+    }
+    if (j == 0) {
+      fit = false;
+    }
   }
 
-  indexPage();
+  //授课院系过滤
+  if (fit && kkx != '' && jxbObj.kkdw != kkx) {
+    fit = false;
+  }
+
+  //匹配星期查询条件
+  if (fit && xq != "") {
+    var finded = false;
+    var pkxxlist = jxbObj.pkxxlist;
+    for (var j in pkxxlist) {
+      if (pkxxlist[j].xq == xq) {
+        finded = true;
+        break;
+      }
+    }
+    fit = finded;
+  }
+
+  //按上课节次信息查询
+  if (fit && ksjc != "" && jsjc != "") {
+    var finded = false;
+    var pkxxlist = jxbObj.pkxxlist;
+    for (var j in pkxxlist) {
+      if (xq == "") { //不考虑星期情况
+        if (parseInt(pkxxlist[j].ksjc) >= parseInt(ksjc) &&
+          parseInt(pkxxlist[j].ksjc) <= parseInt(jsjc) &&
+          parseInt(pkxxlist[j].jsjc) >= parseInt(ksjc) &&
+          parseInt(pkxxlist[j].jsjc) <= parseInt(jsjc)) {
+          finded = true;
+          break;
+        }
+      } else {
+        if (xq == pkxxlist[j].xq &&
+          parseInt(pkxxlist[j].ksjc) >= parseInt(ksjc) &&
+          parseInt(pkxxlist[j].ksjc) <= parseInt(jsjc) &&
+          parseInt(pkxxlist[j].jsjc) >= parseInt(ksjc) &&
+          parseInt(pkxxlist[j].jsjc) <= parseInt(jsjc)) {
+          finded = true;
+          break;
+        }
+      }
+    }
+    fit = finded;
+  }
+
+  //学分查询条件
+  if (fit && xf != "" && parseFloat(jxbObj.xf) != parseFloat(xf)) {
+    fit = false;
+  }
+
+  //匹配课程条件
+  if (fit && kcmc != "" && !(jxbObj.kcmc.indexOf(kcmc) > -1 || jxbObj.kcdm.indexOf(kcmc) > -1)) {
+    fit = false;
+  }
+
+  //教师名称
+  if (fit && skjs != "" && jxbObj.zjls.indexOf(skjs) < 0) {
+    fit = false;
+  }
+
+  return fit;
 }
-
 
 /**
  * 首页
  */
 function indexPage() {
+  if (pageNo == 1) {
+    return;
+  }
   pageNo = 1;
-  $("#pagination").val(pagination);
-  $("#pageNo").val(pageNo);
-  $("#js_text").val(encodeURI($("#js_text").val()));
-  $("#kcmc_text").val(encodeURI($("#kcmc_text").val()));
-  document.all["queryForm"].submit();
+  //重绘表格
+  drawJxbView();
 }
 
 /**
  * 末页
  */
 function endPage() {
-  pageNo = $("#endPage").attr("pageNo");
-  if (queryChanged) {
-    pageNo = 1;
+  var total = getLengthOfObj(results);
+  var pageCount = Math.ceil(total / pagination);
+  if (pageNo >= pageCount) {
+    return;
   }
-  $("#pagination").val(pagination);
-  $("#pageNo").val(pageNo);
-  $("#js_text").val(encodeURI($("#js_text").val()));
-  $("#kcmc_text").val(encodeURI($("#kcmc_text").val()));
-  document.all["queryForm"].submit();
+  pageNo = pageCount;
+  //重绘表格
+  drawJxbView();
 }
 
 /**
  * 下一页
  */
 function nextPage() {
-  pageNo = $("#nextPage").attr("pageNo");
-  if (queryChanged) {
-    pageNo = 1;
+  var total = getLengthOfObj(results);
+  var pageCount = Math.ceil(total / pagination);
+  if (pageNo >= pageCount) {
+    return;
+  } else {
+    pageNo++;
   }
-  $("#pagination").val(pagination);
-  $("#pageNo").val(pageNo);
-  $("#js_text").val(encodeURI($("#js_text").val()));
-  $("#kcmc_text").val(encodeURI($("#kcmc_text").val()));
-  document.all["queryForm"].submit();
+  //重绘表格
+  drawJxbView();
 }
 
 /**
  * 上一页
  */
 function prevPage() {
-  pageNo = $("#prevPage").attr("pageNo");
-  if (queryChanged) {
-    pageNo = 1;
+  if (pageNo == 1) {
+    return;
+  } else {
+    pageNo--;
   }
-  $("#pagination").val(pagination);
-  $("#pageNo").val(pageNo);
-  $("#js_text").val(encodeURI($("#js_text").val()));
-  $("#kcmc_text").val(encodeURI($("#kcmc_text").val()));
-  document.all["queryForm"].submit();
+  //重绘表格
+  drawJxbView();
+}
+
+/**
+ * 显示当前页、总数信息
+ */
+function showPageInfo() {
+  var total = getLengthOfObj(results);
+  $("#totalCount").html(total);
+  $("span#pageNo").html(pageNo);
+  var totalPageCount = Math.ceil(total / pagination);
+  if (totalPageCount == 0) {
+    totalPageCount++;
+  }
+  $("#totalPageCount").html(totalPageCount);
+  $("#pagid").html(top.pagination);
 }
 
 function getLengthOfObj(obj) {
@@ -604,136 +860,6 @@ function getLengthOfObj(obj) {
   return len;
 }
 
-//查询选中的值
-var va = {};
-
-function setVa(key, value) {
-  va[key] = value;
-}
-
-//查询条件改变标识
-var queryChanged = false;
-$(document).ready(function() {
-  //开课院列表 
-  var kkyList = top.loadKkyList();
-  for (var i = 0; i < kkyList.length; i++) {
-    var kkyObj = kkyList[i];
-    $("#kkyList").append("<option value='" + kkyObj.dwdm + "'>" + kkyObj.yxmc);
-  }
-  $("#kkyList").val(va["kkyList"]);
-
-  if (va["kkyList"] != null && va["kkyList"] != "") {
-    //按开课院加载
-    loadKkxList();
-  } else {
-    //开课系列表
-    var kkxList = top.loadKkxList();
-    for (var j = 0; j < kkxList.length; j++) {
-      var kkxObj = kkxList[j];
-      $("#kkxList").append("<option value='" + kkxObj.dwdm + "'>" + kkxObj.yxmc);
-    }
-  }
-  $("#kkxList").val(va["kkxList"]);
-
-  // 初始化星期
-  $("#xq_select").append("<option value='1'>星期一");
-  $("#xq_select").append("<option value='2'>星期二");
-  $("#xq_select").append("<option value='3'>星期三");
-  $("#xq_select").append("<option value='4'>星期四");
-  $("#xq_select").append("<option value='5'>星期五");
-  $("#xq_select").append("<option value='6'>星期六");
-  $("#xq_select").append("<option value='7'>星期日");
-  $("#xq_select").val(va["xq_select"]);
-
-  // 初始化节次代码
-  for (var jcdm in top.jcList) {
-    $("#jcstart_select").append("<option value='" + jcdm + "'>" + top.jcList[jcdm] + "</option>");
-    $("#jcend_select").append("<option value='" + jcdm + "'>" + top.jcList[jcdm] + "</option>");
-  }
-
-  $("#jcstart_select").val(va["jcstart_select"]);
-  $("#jcend_select").val(va["jcend_select"]);
-
-  $("#kcmc_text").val(va["kcmc_text"]);
-  $("#xf_text").val(va["xf_text"]);
-  $("#js_text").val(va["js_text"]);
-
-  $("#kkxList").bind("change", function() {
-    queryChanged = true;
-  });
-
-  $("#xq_select").bind("change", function() {
-    queryChanged = true;
-  });
-  $("#jcstart_select").bind("change", function() {
-    queryChanged = true;
-  });
-  $("#jcend_select").bind("change", function() {
-    queryChanged = true;
-  });
-  $("#kcmc_text").bind("change", function() {
-    queryChanged = true;
-  });
-  $("#xf_text").bind("change", function() {
-    queryChanged = true;
-  });
-  $("#js_text").bind("change", function() {
-    queryChanged = true;
-  });
-
-  // 高级查询按钮事件
-  $("#advQueryFun").click(function() {
-    advancedQuery();
-  });
-
-  $("#indexPage").click(function() {
-    indexPage();
-  });
-  $("#prevPage").click(function() {
-    prevPage();
-  });
-  $("#nextPage").click(function() {
-    nextPage();
-  });
-  $("#endPage").click(function() {
-    endPage();
-  });
-
-});
-
-
-/*
- * ===================================================
- * 功能描述 : 开课院联动开课系加载
- * ===================================================
- */
-function loadKkxList() {
-  var kkyVal = $("#kkyList").val();
-
-  //开课系列表
-  var kkxList;
-  if (kkyVal != null && kkyVal != "") {
-    kkxList = top.loadKkyOnKkxList(kkyVal);
-  } else {
-    kkxList = top.loadKkxList();
-  }
-
-  //重修初始化开课系列表
-  $("#kkxList").empty();
-
-  $("#kkxList").append("<option value=''>-请选择-");
-  for (var j = 0; j < kkxList.length; j++) {
-    var kkxObj = kkxList[j];
-    $("#kkxList").append("<option value='" + kkxObj.dwdm + "'>" + kkxObj.yxmc);
-  }
-
-  //查询改动标志2013-05-24hnn(初始化不用修改)
-  //queryChanged = true;
-}
-
-
-// 选课前条件检查
-var checks = new Array();
 
 /**
  * 选教学班
@@ -741,7 +867,7 @@ var checks = new Array();
  * @param jxbid
  */
 function prepareSelectCourse(jxbid) {
-  var jxb = qxxxxJxb[jxbid];
+  var jxb = results[jxbid];
 
   delete checks;
   checks = new Array();
@@ -815,7 +941,7 @@ function prepareSelectCourse(jxbid) {
  * @param xkzy
  */
 function selectCourse(jxbid) {
-  var jxb = qxxxxJxb[jxbid];
+  var jxb = results[jxbid];
 
   var okMsg = "";
   var cancelMsg = "";
@@ -891,7 +1017,7 @@ function selectCourse(jxbid) {
  * @param xkzy
  */
 function submitSelectCourse(jxbid, xxlx) {
-  var jxb = qxxxxJxb[jxbid];
+  var jxb = results[jxbid];
 
   var rev = eval('(' + $.ajax({
     url: "elect.html?method=handleZxxk",
@@ -926,11 +1052,12 @@ function submitSelectCourse(jxbid, xxlx) {
 
           //加入到前台选课结果
           top.addYxJxbObj(jxb);
-          indexPage();
+
+          //重新刷新页面
+          drawJxbView();
         }
       }
     });
-
   } else {
     //提示选课不成功
     $("#dialog-ts-nr").html(rev.message);
@@ -939,6 +1066,7 @@ function submitSelectCourse(jxbid, xxlx) {
       buttons: {
         "确定": function() {
           $(this).dialog("close");
+
           //重新刷新页面
           drawJxbView();
         }
@@ -948,41 +1076,148 @@ function submitSelectCourse(jxbid, xxlx) {
 }
 
 
+
 /**
- *直接跳转页面
+ *直接跳转页面(回车触发)
  *
  */
 function forwardPage(e) {
+
   var e = e || window.event;
   if (e.keyCode == 13) {
     beginPage();
   }
 }
 
-
 /**
  * 跳页
- * @param to_page
  */
 function beginPage() {
-  var to_page = document.getElementById("beginPage").value;
+  var new_page_size = $("#pagesize").val().replace(" ", "");
+  if (new_page_size.length) {
+    if (isNaN(new_page_size) || new_page_size <= 0) {
+      alert("提示：请输入有效每页记录数!");
+      return;
+    }
+    pagination = new_page_size;
+  }
 
-  if (isNaN(to_page) || to_page <= 0) {
-    alert("提示：请输入有效页数!");
-    return;
+  var to_page = document.getElementById("beginPage").value.replace(" ", "");
+  if (to_page.length) {
+    if (isNaN(to_page) || to_page <= 0) {
+      alert("提示：请输入有效页数!");
+      return;
+    }
+    var total = getLengthOfObj(results);
+    var pageCount = Math.ceil(total / pagination);
+    if (parseInt(to_page, "10") > parseInt(pageCount, "10")) {
+      alert("已超出最大页数!");
+      return;
+    }
+    pageNo = to_page;
   }
-  var totalCount = document.getElementById("totalPageCount").innerText;
-  if (parseInt(to_page, "10") > parseInt(totalCount, "10")) {
-    alert("已超出最大页数!");
-    return;
+  drawJxbView();
+  $("#pagid").html(pagination);
+}
+
+
+
+
+
+
+
+/**
+ * 显示选项设置对话框
+ */
+function setShowType() {
+  var setting_dialog =
+    '<div><input type="checkbox" id="show_rs"><label for="show_rs">是否显示已满课程已选人数</label></div>' +
+    '<div><input type="checkbox" id="show_ym"><label for="show_ym">是否显示已满课程</label></div>' +
+    '<div><input type="checkbox" id="show_ct"><label for="show_ct">是否显示冲突课程</label></div>' +
+    '<div><input type="checkbox" id="show_yx"><label for="show_yx">是否显示已选课程</label></div>' +
+    '<div><input type="checkbox" id="show_zc"><label for="show_zc">是否显示正常课程</label></div>' +
+    '<div><p></p></div>' +
+    '<div><label>每页课程数：</label><input type="text" id="page_size0" size=2></div>' +
+    '<div><p></p></div>' +
+    '<div><input type="checkbox" id="is_global"><label for="is_global">是否全局设置</label></div>';
+  $("#dialog-setting-nr").html(setting_dialog)
+  $("#show_rs").attr("checked", show_rs);
+  $("#show_ym").attr("checked", show_ym);
+  $("#show_ct").attr("checked", show_ct);
+  $("#show_zc").attr("checked", show_zc);
+  $("#show_yx").attr("checked", show_yx);
+  $("#page_size0").val(pagination);
+
+  $("#dialog-setting").dialog({
+    title: "显示选项设置：" + $("#zxxk_tab .tabin", top.document).text(),
+    buttons: {
+      "更新可选人数": function() {
+        getAllJxbKxrs(force = true)
+      },
+      "确定": function() {
+        var before_change = [show_zc, show_rs, show_ym, show_ct, show_yx, pagination];
+
+        show_zc = $("#show_zc").attr("checked");
+        show_rs = $("#show_rs").attr("checked");
+        show_ym = $("#show_ym").attr("checked");
+        show_ct = $("#show_ct").attr("checked");
+        show_yx = $("#show_yx").attr("checked");
+
+        var new_page_size = $("#page_size0").val().replace(" ", "");
+        if (new_page_size.length) {
+          if (isNaN(new_page_size) || new_page_size <= 0) {
+            alert("提示：请输入有效每页记录数!");
+            return;
+          }
+          pagination = new_page_size;
+        }
+
+        var after_change = [show_zc, show_rs, show_ym, show_ct, show_yx, pagination];
+
+        if (before_change.toString() != after_change.toLocaleString()) {
+          drawJxbView();
+        }
+
+        if ($("#is_global").attr("checked")) {
+          $("#show_zc_global", top.document).attr("checked", show_zc);
+          $("#show_rs_global", top.document).attr("checked", show_rs);
+          $("#show_ym_global", top.document).attr("checked", show_ym);
+          $("#show_ct_global", top.document).attr("checked", show_ct);
+          $("#show_yx_global", top.document).attr("checked", show_yx);
+          top.pagination = Number(new_page_size);
+        }
+
+        $(this).dialog("close");
+      }
+    }
+  });
+}
+
+function getAllJxbKxrs(force) {
+  // 获取全部课程已选人数
+  var jxbList = [];
+  for (jxbid in qxxxxJxb) {
+    jxbList.push({
+      "jxbid": jxbid
+    })
   }
-  pageNo = to_page;
-  if (queryChanged) {
-    pageNo = 1;
+
+  if (force || jxbList.length > Object.keys(jxb_xkrs).length) {
+    $.ajax({
+      success: function(responseData, statusText) {
+        if (responseData.success) {
+          for (let jxb of responseData.data) {
+            jxb_xkrs[jxb["jxbid"]] = jxb;
+          }
+        }
+      },
+      url: 'calJxbRs.html?method=getRsToZxxk',
+      type: 'post',
+      async: false,
+      data: {
+        "jxbs": $.toJSON(jxbList)
+      },
+      dataType: 'json'
+    });
   }
-  $("#pagination").val(pagination);
-  $("#pageNo").val(pageNo);
-  $("#js_text").val(encodeURI($("#js_text").val()));
-  $("#kcmc_text").val(encodeURI($("#kcmc_text").val()));
-  document.all["queryForm"].submit();
 }
