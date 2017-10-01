@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         XMU-BKXK
 // @namespace    undefined
-// @version      0.1.3
+// @version      0.1.4
 // @description  厦门大学本科选课系统改造脚本
 // @author       linjinzhen
 // @match        http://bkxk.xmu.edu.cn/*
@@ -68,11 +68,13 @@ $("#zxxk_tab li:eq(3)").click(function() {
     $("head", top.document).after('<input type="hidden" id="show_ym_global">');
     $("head", top.document).after('<input type="hidden" id="show_ct_global">');
     $("head", top.document).after('<input type="hidden" id="show_yx_global">');
+    $("head", top.document).after('<input type="hidden" id="show_hs_global">');
     $("#show_zc_global", top.document).attr("checked", true);
     $("#show_rs_global", top.document).attr("checked", false);
     $("#show_ym_global", top.document).attr("checked", true);
     $("#show_ct_global", top.document).attr("checked", true);
     $("#show_yx_global", top.document).attr("checked", false);
+    $("#show_hs_global", top.document).attr("checked", false);
   }
 
   var base_url = "https://gitee.com/linjinzhen/xmu-bkxk/raw/master/js/";

@@ -12,9 +12,18 @@ var show_ym = $("#show_ym_global", top.document).attr("checked"); // 是否显�
 var show_ct = $("#show_ct_global", top.document).attr("checked"); // 是否显示冲突课程
 var show_yx = $("#show_yx_global", top.document).attr("checked"); // 是否显示已选课程
 var show_zc = $("#show_zc_global", top.document).attr("checked"); // 是否显示正常课程
+var show_hs = $("#show_hs_global", top.document).attr("checked"); // 是否显示红色课程
 
 // 查询结果
 var results = new Array();
+
+var red_color_course = [];
+$("#view_table tbody tr a.jxjd").each(function() {
+  if ($(this).parents("tr").attr("style") != undefined) {
+    red_color_course.push($(this).attr("id"));
+  }
+});
+
 
 $(document).ready(function() {
   $("#beginPage").parent().append('，每页<input size="2" id="pagesize" type="text" onkeydown="forwardPage(event)">条记录</div>');
@@ -169,6 +178,10 @@ function generateFilterJxbs() {
     }
 
 
+    if (red_color_course.indexOf(jxbid) != -1) {
+      fit = show_hs;
+    }
+
     //正在进行高级查询
     if (fit && advancedQuerying) {
       fit = advanceVal(jxbObj);
@@ -278,8 +291,11 @@ function drawJxbView() {
 
     //总学时
     var zxs = (jxbObj.zxs == null || jxbObj.zxs == "") ? "&nbsp;" : jxbObj.zxs;
-
-    trStr = '<tr id="tr_' + view_table + '_' + jxbid + '">';
+    if (red_color_course.indexOf(jxbObj.jxbid) == -1) {
+      trStr = '<tr id="tr_' + view_table + '_' + jxbid + '">';
+    } else {
+      trStr = '<tr id="tr_' + view_table + '_' + jxbid + '" style="font-weight:bold;color:red">';
+    }
     trStr += ('<td>' + kclbmc + '</td>');
     trStr += ('<td>' + kcxzmc + '</td>');
     //  trStr += ('<td><a class="kcjj" href="">' + jxbObj.kcdm + '</a></td>');
@@ -1136,6 +1152,7 @@ function setShowType() {
     '<div><input type="checkbox" id="show_ct"><label for="show_ct">是否显示冲突课程</label></div>' +
     '<div><input type="checkbox" id="show_yx"><label for="show_yx">是否显示已选课程</label></div>' +
     '<div><input type="checkbox" id="show_zc"><label for="show_zc">是否显示正常课程</label></div>' +
+    '<div><input type="checkbox" id="show_hs"><label for="show_hs">是否显示红色课程</label></div>' +
     '<div><p></p></div>' +
     '<div><label>每页课程数：</label><input type="text" id="page_size0" size=2></div>' +
     '<div><p></p></div>' +
@@ -1146,6 +1163,7 @@ function setShowType() {
   $("#show_ct").attr("checked", show_ct);
   $("#show_zc").attr("checked", show_zc);
   $("#show_yx").attr("checked", show_yx);
+  $("#show_hs").attr("checked", show_hs);
   $("#page_size0").val(pagination);
 
   $("#dialog-setting").dialog({
@@ -1155,13 +1173,14 @@ function setShowType() {
         getAllJxbKxrs(force = true)
       },
       "确定": function() {
-        var before_change = [show_zc, show_rs, show_ym, show_ct, show_yx, pagination];
+        var before_change = [show_zc, show_rs, show_ym, show_ct, show_yx, show_hs, pagination];
 
         show_zc = $("#show_zc").attr("checked");
         show_rs = $("#show_rs").attr("checked");
         show_ym = $("#show_ym").attr("checked");
         show_ct = $("#show_ct").attr("checked");
         show_yx = $("#show_yx").attr("checked");
+        show_hs = $("#show_hs").attr("checked");
 
         var new_page_size = $("#page_size0").val().replace(" ", "");
         if (new_page_size.length) {
@@ -1172,7 +1191,7 @@ function setShowType() {
           pagination = new_page_size;
         }
 
-        var after_change = [show_zc, show_rs, show_ym, show_ct, show_yx, pagination];
+        var after_change = [show_zc, show_rs, show_ym, show_ct, show_yx, show_hs, pagination];
 
         if (before_change.toString() != after_change.toLocaleString()) {
           drawJxbView();
@@ -1184,6 +1203,7 @@ function setShowType() {
           $("#show_ym_global", top.document).attr("checked", show_ym);
           $("#show_ct_global", top.document).attr("checked", show_ct);
           $("#show_yx_global", top.document).attr("checked", show_yx);
+          $("#show_hs_global", top.document).attr("checked", show_hs);
           top.pagination = Number(new_page_size);
         }
 
