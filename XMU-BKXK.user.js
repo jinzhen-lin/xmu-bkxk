@@ -11,7 +11,7 @@
 
 
 
-if (top.document.getElementById("zxxkLink") != null &&
+if (top.document.getElementById("zxxkLink") !== null &&
   top.document.getElementById("zxxkLink").getAttribute("class") == "tabin") {
   $("#zxxk_tab li:eq(3)").attr("onclick", "");
 
@@ -62,19 +62,13 @@ if (top.document.getElementById("zxxkLink") != null &&
 
 
   (function() {
-    if (!$("#show_rs_global, #show_ym_global, #show_ct_global, #show_yx_global, #show_zc_global", top.document).length) {
-      $("head", top.document).after('<input type="hidden" id="show_zc_global">');
-      $("head", top.document).after('<input type="hidden" id="show_rs_global">');
-      $("head", top.document).after('<input type="hidden" id="show_ym_global">');
-      $("head", top.document).after('<input type="hidden" id="show_ct_global">');
-      $("head", top.document).after('<input type="hidden" id="show_yx_global">');
-      $("head", top.document).after('<input type="hidden" id="show_hs_global">');
-      $("#show_zc_global", top.document).attr("checked", true);
-      $("#show_rs_global", top.document).attr("checked", false);
-      $("#show_ym_global", top.document).attr("checked", true);
-      $("#show_ct_global", top.document).attr("checked", true);
-      $("#show_yx_global", top.document).attr("checked", false);
-      $("#show_hs_global", top.document).attr("checked", true);
+    if (!$("#show_rs_global", top.document).length) {
+      $("head", top.document).append($('<input type="hidden" id="show_zc_global">').attr("checked", true));
+      $("head", top.document).append($('<input type="hidden" id="show_rs_global">').attr("checked", false));
+      $("head", top.document).append($('<input type="hidden" id="show_ym_global">').attr("checked", true));
+      $("head", top.document).append($('<input type="hidden" id="show_ct_global">').attr("checked", true));
+      $("head", top.document).append($('<input type="hidden" id="show_yx_global">').attr("checked", false));
+      $("head", top.document).append($('<input type="hidden" id="show_hs_global">').attr("checked", true));
     }
 
     var base_url = "https://gitee.com/linjinzhen/xmu-bkxk/raw/master/js/";
