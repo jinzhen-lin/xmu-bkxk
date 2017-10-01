@@ -10,12 +10,10 @@
 // ==/UserScript==
 
 
+if (top.document.getElementById("zxxkLink") !== null) {
+  $("#zxxk_tab li:eq(3)", top.document).attr("onclick", "");
 
-if (top.document.getElementById("zxxkLink") !== null &&
-  top.document.getElementById("zxxkLink").getAttribute("class") == "tabin") {
-  $("#zxxk_tab li:eq(3)").attr("onclick", "");
-
-  $("#zxxk_tab li:eq(3)").click(function() {
+  $("#zxxk_tab li:eq(3)", top.document).click(function() {
     if ($(this).attr("class") == "tabin") {
       return;
     }
@@ -59,8 +57,10 @@ if (top.document.getElementById("zxxkLink") !== null &&
       window.frames[iFrame_var].drawJxbView();
     }
   });
+}
 
-
+if (top.document.getElementById("zxxkLink") !== null &&
+  top.document.getElementById("zxxkLink").getAttribute("class") == "tabin") {
   (function() {
     if (!$("#show_rs_global", top.document).length) {
       $("head", top.document).append($('<input type="hidden" id="show_zc_global">').attr("checked", true));
