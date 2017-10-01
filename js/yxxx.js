@@ -1,9 +1,11 @@
 $(document).ready(function() {
-  $("#beginPage").parent().append('，每页<input size="2" id="pagesize" type="text" onkeydown="forwardPage(event)">条记录</div>');
-  $("#dialog-qrxk").after('<div id="dialog-setting" style="display: none"><p id="dialog-setting-nr"></p></div>');
-  $("#moreOrLess").parent().after('<div style="float:left;height:22px;line-height:23px;width:50px">' +
-    '<a id="show_setting" href="#" style="float:right">显示设置</a></div>');
-  $("#show_setting").click(setShowType);
+  if (!$("#dialog-setting").length) {
+    $("#beginPage").parent().append('，每页<input size="2" id="pagesize" type="text" onkeydown="forwardPage(event)">条记录</div>');
+    $("#dialog-qrxk").after('<div id="dialog-setting" style="display: none"><p id="dialog-setting-nr"></p></div>');
+    $("#moreOrLess").parent().after('<div style="float:left;height:22px;line-height:23px;width:50px">' +
+      '<a id="show_setting" href="#" style="float:right">显示设置</a></div>');
+    $("#show_setting").click(setShowType);
+  }
 });
 
 // 用于存储已选课程信息列表

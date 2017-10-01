@@ -26,16 +26,18 @@ $("#view_table tbody tr a.jxjd").each(function() {
 
 
 $(document).ready(function() {
-  $("#beginPage").parent().append('，每页<input size="2" id="pagesize" type="text" onkeydown="forwardPage(event)">条记录</div>');
-  $("#dialog-qrxk").after('<div id="dialog-setting" style="display: none"><p id="dialog-setting-nr"></p></div>');
-  $("#view_table").before('<div style="float:right;height:22px;line-height:23px;width:50px">' +
-    '<a id="show_setting" href="#" style="float:right;color:black;font-weight:bold;">显示设置</a></div>');
-  $("#show_setting").click(setShowType);
-  //定义查询操作
-  defineQueryOper();
+  if (!$("#dialog-setting").length) {
+    $("#beginPage").parent().append('，每页<input size="2" id="pagesize" type="text" onkeydown="forwardPage(event)">条记录</div>');
+    $("#dialog-qrxk").after('<div id="dialog-setting" style="display: none"><p id="dialog-setting-nr"></p></div>');
+    $("#view_table").before('<div style="float:right;height:22px;line-height:23px;width:50px">' +
+      '<a id="show_setting" href="#" style="float:right;color:black;font-weight:bold;">显示设置</a></div>');
+    $("#show_setting").click(setShowType);
+    //定义查询操作
+    defineQueryOper();
 
-  //展现可选教学班
-  drawJxbView();
+    //展现可选教学班
+    drawJxbView();
+  }
 });
 
 

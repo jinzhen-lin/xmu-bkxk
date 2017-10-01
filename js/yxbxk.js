@@ -1,23 +1,24 @@
 $(document).ready(function() {
-  $("#indexPage").attr("class", "page_class");
-  $("#prevPage").attr("class", "page_class");
-  $("#nextPage").attr("class", "page_class");
-  $("#endPage").attr("class", "page_class");
+  if (!$("#dialog-setting").length) {
+    $("#indexPage").attr("class", "page_class");
+    $("#prevPage").attr("class", "page_class");
+    $("#nextPage").attr("class", "page_class");
+    $("#endPage").attr("class", "page_class");
 
 
-  $("#endPage").parent().after(
-    '<td><div>直接到第' +
-    '<input size="2" id="beginPage" value="" type="text" onkeydown="forwardPage(event)" data-cip-id="beginPage">页，每页' +
-    '<input size="2" id="pagesize" type="text" onkeydown="forwardPage(event)" data-cip-id="pagesize">条记录' +
-    '</div></td>' +
-    '<td><div id="goPage" onclick="beginPage()" style="cursor:pointer;" class="page_class">跳转</div></td>'
-  );
+    $("#endPage").parent().after(
+      '<td><div>直接到第' +
+      '<input size="2" id="beginPage" value="" type="text" onkeydown="forwardPage(event)" data-cip-id="beginPage">页，每页' +
+      '<input size="2" id="pagesize" type="text" onkeydown="forwardPage(event)" data-cip-id="pagesize">条记录' +
+      '</div></td>' +
+      '<td><div id="goPage" onclick="beginPage()" style="cursor:pointer;" class="page_class">跳转</div></td>'
+    );
 
-  $("#dialog-qrxk").after('<div id="dialog-setting" style="display: none"><p id="dialog-setting-nr"></p></div>');
-  $("#moreOrLess").parent().after('<div style="float:left;height:22px;line-height:23px;width:50px">' +
-    '<a id="show_setting" href="#" style="float:right">显示设置</a></div>');
-  $("#show_setting").click(setShowType);
-
+    $("#dialog-qrxk").after('<div id="dialog-setting" style="display: none"><p id="dialog-setting-nr"></p></div>');
+    $("#moreOrLess").parent().after('<div style="float:left;height:22px;line-height:23px;width:50px">' +
+      '<a id="show_setting" href="#" style="float:right">显示设置</a></div>');
+    $("#show_setting").click(setShowType);
+  }
 });
 
 // 用于存储已选课程信息列表
