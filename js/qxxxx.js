@@ -2,15 +2,11 @@
 var fullJxbs = {};
 var jxb_xkrs = {};
 
-// 用于存储已选课程信息列表
-var yxList = {};
-
 var advancedQuerying = false; //是否点击了高级查询
 
 var show_rs = $("#show_rs_global", top.document).attr("checked"); // 是否显示已满课程已选人数
 var show_ym = $("#show_ym_global", top.document).attr("checked"); // 是否显示已满课程
 var show_ct = $("#show_ct_global", top.document).attr("checked"); // 是否显示冲突课程
-var show_yx = $("#show_yx_global", top.document).attr("checked"); // 是否显示已选课程
 var show_zc = $("#show_zc_global", top.document).attr("checked"); // 是否显示正常课程
 var show_hs = $("#show_hs_global", top.document).attr("checked"); // 是否显示红色课程
 
@@ -159,7 +155,6 @@ function generateFilterJxbs() {
   for (jxbid in qxxxxJxb) {
     var jxbObj = qxxxxJxb[jxbid];
     var jgObj = loadJxbXkFilter(jxbObj);
-    yxList[jxbid] = jgObj.isYx;
     ctxxList[jxbid] = jgObj.ctHtmlTxt;
 
     var fit = true;
@@ -176,7 +171,7 @@ function generateFilterJxbs() {
     }
 
     if (jgObj.isYx) {
-      fit = show_yx;
+      fit = false;
     }
 
 
@@ -538,7 +533,7 @@ function setJxbViewAttr(datas, view_table, jxbfjxxList) {
     }
 
     //选课按钮显示2013-05-23hnn
-    if (parseInt(jxbKxrs) > 0 && !yxList[datas[i].jxbid]) {
+    if (parseInt(jxbKxrs) > 0) {
       var oper = $("#" + view_table + "_xkbut_" + datas[i].jxbid);
       oper.html('<a href="javascript:prepareSelectCourse(\'' +
         datas[i].jxbid +
@@ -1152,7 +1147,6 @@ function setShowType() {
     '<div><input type="checkbox" id="show_rs"><label for="show_rs">是否显示已满课程已选人数</label></div>' +
     '<div><input type="checkbox" id="show_ym"><label for="show_ym">是否显示已满课程</label></div>' +
     '<div><input type="checkbox" id="show_ct"><label for="show_ct">是否显示冲突课程</label></div>' +
-    '<div><input type="checkbox" id="show_yx"><label for="show_yx">是否显示已选课程</label></div>' +
     '<div><input type="checkbox" id="show_zc"><label for="show_zc">是否显示正常课程</label></div>' +
     '<div><input type="checkbox" id="show_hs"><label for="show_hs">是否显示红色课程</label></div>' +
     '<div><p></p></div>' +
@@ -1164,7 +1158,6 @@ function setShowType() {
   $("#show_ym").attr("checked", show_ym);
   $("#show_ct").attr("checked", show_ct);
   $("#show_zc").attr("checked", show_zc);
-  $("#show_yx").attr("checked", show_yx);
   $("#show_hs").attr("checked", show_hs);
   $("#page_size0").val(pagination);
 
@@ -1175,13 +1168,12 @@ function setShowType() {
         getAllJxbKxrs(force = true)
       },
       "确定": function() {
-        var before_change = [show_zc, show_rs, show_ym, show_ct, show_yx, show_hs, pagination];
+        var before_change = [show_zc, show_rs, show_ym, show_ct, show_hs, pagination];
 
         show_zc = $("#show_zc").attr("checked");
         show_rs = $("#show_rs").attr("checked");
         show_ym = $("#show_ym").attr("checked");
         show_ct = $("#show_ct").attr("checked");
-        show_yx = $("#show_yx").attr("checked");
         show_hs = $("#show_hs").attr("checked");
 
         var new_page_size = $("#page_size0").val().replace(" ", "");
@@ -1193,7 +1185,7 @@ function setShowType() {
           pagination = new_page_size;
         }
 
-        var after_change = [show_zc, show_rs, show_ym, show_ct, show_yx, show_hs, pagination];
+        var after_change = [show_zc, show_rs, show_ym, show_ct, show_hs, pagination];
 
         if (before_change.toString() != after_change.toLocaleString()) {
           drawJxbView();
@@ -1204,7 +1196,6 @@ function setShowType() {
           $("#show_rs_global", top.document).attr("checked", show_rs);
           $("#show_ym_global", top.document).attr("checked", show_ym);
           $("#show_ct_global", top.document).attr("checked", show_ct);
-          $("#show_yx_global", top.document).attr("checked", show_yx);
           $("#show_hs_global", top.document).attr("checked", show_hs);
           top.pagination = Number(new_page_size);
         }
